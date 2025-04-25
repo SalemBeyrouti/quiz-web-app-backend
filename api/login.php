@@ -1,6 +1,8 @@
 <?php
 
 require("../connect.php");
+header("Content-Type: application/json");
+session_start();
 
 $email = $_POST['email'] ?? '';
 $password = $_POST['password'] ?? '';
@@ -22,6 +24,7 @@ $result = mysqli_stmt_get_result($stmt);
 
 if ($row = mysqli_fetch_assoc($result)) {
     if (password_verify($password, $row["password"])) {
+        $_SESSION["user_id"] = $row["id"];
         echo json_encode([
             "status" => "success",
             "message" => "Login successful",
