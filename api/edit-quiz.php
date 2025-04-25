@@ -18,6 +18,7 @@ $quiz_id = $_POST["quiz_id"] ?? '';
 $title = $_POST ["title"] ?? '';
 $description = $_POST["description"] ?? '';
 $user_id = $_SESSION["user_id"];
+$user_email = $_SESSION["user_email"];
 
 if(empty($quiz_id)  ||  empty($title) ||  empty($description)) {
     echo json_encode(
@@ -29,12 +30,40 @@ if(empty($quiz_id)  ||  empty($title) ||  empty($description)) {
         exit;
 }
 
-$query = "UPDATE `quizzes` SET `title` = ?, `description` = ? WHERE `id` = ? And `user_id` = ?";
+$query = "SELECT user_id FROM quizzes WHERE id = ?";
 $stmt = mysqli_prepare($conn, $query);
-mysqli_stmt_bind_param($stmt, "ssii", $title, $description, $quiz_id, $user_id,);
+mysqli_stmt_bind_param($stmt, "i", $quiz_id);
+mysqli_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$row = mysqli_fetch_assoc($result);
 
-if (mysqli_stmt_execute($stmt)) {
-    if (mysqli_stmt_affected_rows($stmt) > 0) {
+if (!$row) {
+    echo json_encode(
+        [
+            "status" => "error",
+            "message" => "quiz not found"
+        ]);
+        exit;
+}
+
+$quiz_creator_id = $row["user_id"];
+
+if($quiz_creator_id != $user_id && $user_email != "admin@quiz.com"){
+    echo json_encode(
+        [
+            "status" => "error",
+            "message" => "you are not allowed to edit"
+        ]
+        );
+        exit;
+}
+
+$update_query = "UPDATE `quizzes` SET `title` = ?, `description` = ? WHERE `id` = ?";
+$update_stmt = mysqli_prepare($conn, $update_query);
+mysqli_stmt_bind_param($update_stmt, "ssi", $title, $description, $quiz_id);
+
+if (mysqli_stmt_execute($update_stmt)) {
+    if (mysqli_stmt_affected_rows($update_stmt) > 0) {
      echo json_encode(
         [
             "status" => "success",
